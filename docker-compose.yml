@@ -1,0 +1,65 @@
+version: '3.9'
+
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    environment:
+     ZOOKEEPER_CLIENT_PORT: 2181
+     ZOOKEEPER_TICK_TIME: 2000
+  
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    depends_on:
+      - zookeeper
+    ports:
+    - "29092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+  postgres_order:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: pass
+      POSTGRES_DB: orderdb
+    ports:
+      - "5433:5432"
+    volumes:
+      - pg_order_data:/var/lib/postgresql/data
+
+  postgres_payment:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: pass
+      POSTGRES_DB: paymentdb
+    ports:
+      - "5434:5432"
+    volumes:
+      - pg_payment_data:/var/lib/postgresql/data
+
+  order-service:
+    build:
+      context: ./Order
+    environment:
+      DATABASE_URL: postgres://user:pass@postgres_order:5432/orderdb
+    ports:
+      - "1323:1323"
+    depends_on:
+      - kafka
+      - postgres_order
+
+  payment-service:
+    build:
+      context: ./Payment
+    environment:
+      DATABASE_URL: postgres://user:pass@postgres_payment:5432/paymentdb
+    depends_on:
+      - kafka
+      - postgres_payment
+
+volumes:
+  pg_order_data:
+  pg_payment_data:

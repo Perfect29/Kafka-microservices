@@ -1,0 +1,57 @@
+package order
+
+import (
+	"context"
+	"fmt"
+	"time"
+
+	"github.com/jackc/pgx/v5"
+	log "github.com/sirupsen/logrus"
+) 
+
+type DB struct {
+	conn *pgx.Conn
+}
+
+type Repo interface {
+	SaveOrder(ctx context.Context, order *Order) error
+}
+
+func NewDB() (*DB, error) {
+	dsn := "postgres://user:pass@postgres_order:5432/orderdb?sslmode=disable"
+	var conn *pgx.Conn
+	var err error
+
+	for i := 1; i <= 10; i++ {
+		conn, err = pgx.Connect(context.Background(), dsn)
+		if err == nil {
+			log.Infof("Payment DB connected")
+			return &DB{conn: conn}, nil
+		}
+		log.Infof("Payment DB not ready (%d/10): %v\n", i, err)
+		time.Sleep(3 * time.Second)
+	}
+
+	return nil, fmt.Errorf("payment DB connection failed: %w", err)
+}
+
+func (db *DB) Close() {
+	db.conn.Close(context.Background())
+}
+
+func (db *DB) SaveOrder(ctx context.Context, order *Order) error {
+	order.Status = "pending"
+	query := `
+		INSERT INTO orders (item, amount, price, status)
+		VALUES ($1, $2, $3, $4)
+		RETURNING id;
+	`
+	err := db.conn.QueryRow(ctx, query, order.Item, order.Amount, order.Price, order.Status).Scan(&order.ID)
+
+	if err != nil {
+		return fmt.Errorf("could not save order: %w", err)
+	}
+
+	log.Infof("Request saved to order database")
+	return nil
+}
