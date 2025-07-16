@@ -16,6 +16,17 @@ type Order struct {
 	Status string  `json:"status"`
 }
 
+type OrderEvent struct {
+	Order   Order  `json:"order"`
+	EventID string `json:"event_id"`
+}
+
+type PaymentStatusEvent struct {
+	OrderID int    `json:"order_id"`
+	EventID string `json:"event_id"`
+	Status  string `json:"status"`
+}
+
 type Handler struct {
-	Repo     Repo
+	Repo Repo
 }

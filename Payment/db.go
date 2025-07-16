@@ -40,6 +40,10 @@ func (db *DB) Close() {
 }
 
 func (db *DB) SavePayment(ctx context.Context, payment *Payment) error {
+	// Test case
+	// if payment.OrderID == 998 {
+	// 	return fmt.Errorf("💥 forced failure for OrderID 999")
+	// }
 	payment.Status = "paid"
 	query := `
 		INSERT INTO payments (order_id, status)
@@ -54,5 +58,38 @@ func (db *DB) SavePayment(ctx context.Context, payment *Payment) error {
 	}
 
 	log.Infof("Request saved to payment database")
+	return nil
+}
+
+func (db *DB) CheckDuplicate(ctx context.Context, eventID string) (bool, error) {
+	query := `
+		SELECT EXISTS (
+			SELECT 1 FROM processed_events WHERE event_id = $1
+		)
+	`
+	var exists bool
+
+	err := db.conn.QueryRow(ctx, query, eventID).Scan(&exists)
+	if err != nil {
+		return false, err
+	}
+	log.Info("Order was checked for duplicate")
+	return exists, nil
+}
+
+func (db *DB) MarkProcessed(ctx context.Context, eventID string) error {
+	query := `
+		INSERT INTO processed_events (event_id)
+		VALUES (
+			$1
+		)
+	`
+
+	_, err := db.conn.Exec(ctx, query, eventID)
+
+	if err != nil {
+		return err
+	}
+	log.Infof("Event with id %v is marked and processed", eventID)
 	return nil
 }

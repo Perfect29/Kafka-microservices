@@ -30,16 +30,7 @@ func main() {
 	)
 
 	go func() {
-		err := consumer.StartConsuming(ctx, func(orderID int, status string){
-			p := &payment.Payment{
-				OrderID: orderID,
-				Status: status,
-			}
-			if err := db.SavePayment(ctx, p); err != nil {
-				log.Errorf("Error saving payment: %v", err)
-			}
-		})
-
+		err := consumer.StartConsuming(ctx, db)
 		if err != nil {
 			log.Warnf("Kafka error: %v", err)
 		}

@@ -15,6 +15,7 @@ type DB struct {
 
 type Repo interface {
 	SaveOrder(ctx context.Context, order *Order) error
+	ChangeStatus(ctx context.Context, payEvent PaymentStatusEvent) error
 }
 
 func NewDB() (*DB, error) {
@@ -53,5 +54,19 @@ func (db *DB) SaveOrder(ctx context.Context, order *Order) error {
 	}
 
 	log.Infof("Request saved to order database")
+	return nil
+}
+
+func (db *DB) ChangeStatus(ctx context.Context, payEvent PaymentStatusEvent) error {
+	query := `
+		UPDATE ORDERS
+		SET status = $1
+		WHERE id = $2
+	`
+	_, err := db.conn.Exec(ctx, query, payEvent.Status, payEvent.OrderID)
+
+	if err != nil {
+		return err
+	}
 	return nil
 }
