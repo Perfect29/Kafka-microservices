@@ -9,3 +9,7 @@ import (
 func (h *Handler) GetHandler(c echo.Context) error {
 	return c.JSON(http.StatusOK, map[string]any{"status": "ok"})
 }
+
+func (h * Handler) PostHandler(c echo.Context) {
+	
+}

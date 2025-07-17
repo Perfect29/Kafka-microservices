@@ -16,6 +16,7 @@ type DB struct {
 type Repo interface {
 	SaveOrder(ctx context.Context, order *Order) error
 	ChangeStatus(ctx context.Context, payEvent PaymentStatusEvent) error
+	CheckStatus(ctx context.Context, id int) (string, error)
 }
 
 func NewDB() (*DB, error) {
@@ -69,4 +70,20 @@ func (db *DB) ChangeStatus(ctx context.Context, payEvent PaymentStatusEvent) err
 		return err
 	}
 	return nil
+}
+
+func (db *DB) CheckStatus(ctx context.Context, id int) (string, error) {
+	var status string
+	query := `
+		SELECT status
+		FROM orders
+		WHERE id = $1
+	`
+
+	err := db.conn.QueryRow(ctx, query, id).Scan(&status)
+	if err != nil {
+		return "", err
+	}
+
+	return status, nil
 }

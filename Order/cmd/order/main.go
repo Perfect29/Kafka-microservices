@@ -46,6 +46,7 @@ func main() {
 
 
 	e.POST("/orders", Handler.PostHandler)
+	e.GET("/orders/:order_id", Handler.GetPaymentStatus)
 
 	go func() {
 		<-ctx.Done()
